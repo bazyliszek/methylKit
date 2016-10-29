@@ -11,17 +11,17 @@ rowSds <- function(x, center=NULL, ...) {
   n <- !is.na(x);
   n <- rowSums(n);
   n[n <= 1] <- NA;
-
+  
   if (is.null(center)) {
     center <- rowMeans(x, ...);
   }
-
+  
   x <- x - center;
   x <- x*x;
   x <- rowSums(x, ...);
   x <- x/(n-1);
-
- sqrt(x);
+  
+  sqrt(x);
 }
 
 
@@ -75,19 +75,19 @@ colSds <- function(x, ...) {
 # hclust.method the agglomeration method to be used
 # plot if TRUE, plot the hierarchical clustering
 .cluster=function(x, dist.method="correlation", hclust.method="ward", plot=TRUE,
-                  treatment=treatment,sample.ids=sample.ids,context){
+                  treatment=treatment,sample.ids=sample.ids,context, lettercolors){
   DIST.METHODS <- c("correlation", "euclidean", "maximum", "manhattan", "canberra", 
-        "binary", "minkowski")
+                    "binary", "minkowski")
   dist.method <- pmatch(dist.method, DIST.METHODS)
-
+  
   HCLUST.METHODS <- c("ward", "single", "complete", "average", "mcquitty", 
-        "median", "centroid")
+                      "median", "centroid")
   hclust.method <- pmatch(hclust.method, HCLUST.METHODS)
   if (is.na(hclust.method)) 
     stop("invalid clustering method")
   if (hclust.method == -1) 
     stop("ambiguous clustering method")
-
+  
   if(DIST.METHODS[dist.method] == "correlation")
     d = .dist.cor(t(x))
   else
@@ -101,43 +101,47 @@ colSds <- function(x, ...) {
     # plot
     treatment=treatment
     sample.ids=sample.ids
-
-    my.cols=rainbow(length(unique(treatment)), start=1, end=0.6)
-
+    if (is.null(lettercolors))
+    {
+      my.cols=rainbow(length(unique(treatment)), start=1, end=0.6)
+    }
+    else 
+      my.cols = lettercolors
     col.list=as.list(my.cols[treatment+1])
+    #print(c("The treatment", unique(treatment), "corresponds to", lettercolors))
     names(col.list)=sample.ids
-
+    
     colLab <- function(n,col.list)
-      {
+    {
       if(is.leaf(n))
-        {
-          a <- attributes(n)
-
-          attr(n, "nodePar") <- c(a$nodePar, list(lab.col =
-          col.list[[a$label]], lab.cex=1,
-          col=col.list[[a$label]], cex=1, pch=16 ))
-        }
-      n
+      {
+        a <- attributes(n)
+        
+        attr(n, "nodePar") <- c(a$nodePar, list(lab.col =
+                                                  col.list[[a$label]], lab.cex=1,
+                                                col=col.list[[a$label]], cex=1, pch=16 ))
       }
+      n
+    }
     
     dend = as.dendrogram(hc)
     dend_colored <- dendrapply(dend, colLab,col.list)
     
     plot(dend_colored, main = paste(context, "methylation clustering"), 
          sub = paste("Distance method: \"", DIST.METHODS[dist.method],
-         "\"; Clustering method: \"", HCLUST.METHODS[hclust.method],"\"",sep=""), 
+                     "\"; Clustering method: \"", HCLUST.METHODS[hclust.method],"\"",sep=""), 
          xlab = "Samples", ylab = "Height");
     # end of plot
-    }
-  return(hc)
   }
+  return(hc)
+}
 
 # Adjust the range of a vector "x" by "i" proportion of the range of x
 # 
 # @param x a vector of value
 # @param i the proprotion of the range of x to adjust the size.
 .adjlim=function(x, i)
-  {
+{
   if(length(x)>1) {
     xr=range(x); 
     xlim=c(); 
@@ -146,16 +150,16 @@ colSds <- function(x, ...) {
     return(xlim)} 
   else 
     print("length vector x should be more than 1")
-  }
+}
 # Principal Components Analysis on methylBase object
 # x matrix each column is a sample
 # cor a logical value indicating whether the calculation should use the correlation matrix or the covariance matrix. (The correlation matrix can only be used if there are no constant variables.)
 .pcaPlot = function(x,comp1=1,comp2=2, screeplot=FALSE, adj.lim=c(0.001,0.1), treatment=treatment,sample.ids=sample.ids,context,scale=TRUE,center=TRUE,obj.return=FALSE){
   #x.pr = princomp(x, cor=cor)
   
-
+  
   x.pr = prcomp((x),scale.=scale,center=center)
-
+  
   if (screeplot){
     i=5;screeplot(x.pr, type="barplot", main=paste(context,"methylation PCA Screeplot"), col = rainbow(i)[i])
   }
@@ -165,7 +169,7 @@ colSds <- function(x, ...) {
     treatment=treatment
     sample.ids=sample.ids
     my.cols=rainbow(length(unique(treatment)), start=1, end=0.6)
-
+    
     
     plot(loads[,comp1],loads[,comp2], main = paste(context,"methylation PCA Analysis"),
          col=my.cols[treatment+1],
@@ -178,7 +182,7 @@ colSds <- function(x, ...) {
          col=my.cols[treatment+1])
   }
   if(obj.return){  return((x.pr))}
-
+  
 }
 
 
@@ -187,9 +191,9 @@ colSds <- function(x, ...) {
 .pcaPlotT = function(x,comp1=1,comp2=2,screeplot=FALSE, adj.lim=c(0.001,0.1),
                      treatment=treatment,sample.ids=sample.ids,context,
                      scale=TRUE,center=TRUE,obj.return=FALSE){
-
+  
   x.pr = prcomp(t(x),scale.=scale,center=center)
- 
+  
   if (screeplot){
     i=5;screeplot(x.pr, type="barplot", 
                   main=paste(context,"methylation PCA Screeplot"), 
@@ -248,13 +252,13 @@ colSds <- function(x, ...) {
 #'        clustering. (default:TRUE) 
 #' @param chunk.size Number of rows to be taken as a chunk for processing the \code{methylBaseDB} objects, default: 1e6
 #'        
-#' @usage clusterSamples(.Object, dist="correlation", method="ward",
+#' @usage ClusterSamples(.Object, dist="correlation", method="ward",
 #'                        sd.filter=TRUE,sd.threshold=0.5,
 #'                        filterByQuantile=TRUE, plot=TRUE,chunk.size)
 #' @examples
 #' data(methylKit)
 #' 
-#' clusterSamples(methylBase.obj, dist="correlation", method="ward", plot=TRUE)
+#' ClusterSamples(methylBase.obj, dist="correlation", method="ward", plot=TRUE)
 #' 
 #' 
 #' 
@@ -273,44 +277,43 @@ colSds <- function(x, ...) {
 #'
 #' @export
 #' @docType methods
-#' @rdname clusterSamples-methods
-setGeneric("clusterSamples", function(.Object, dist="correlation", method="ward",
-                                      sd.filter=TRUE,sd.threshold=0.5,
-                                      filterByQuantile=TRUE, 
-                                      plot=TRUE,chunk.size=1e6) 
-                                              standardGeneric("clusterSamples"))
+#' @rdname ClusterSamples-methods
+setGeneric("ClusterSamples", function(.Object, dist="correlation", method="ward",
+                                              sd.filter=TRUE,sd.threshold=0.5,
+                                              filterByQuantile=TRUE, 
+                                              plot=TRUE,chunk.size=1e6, lettercolors=NULL) 
+  standardGeneric("ClusterSamples"))
 
-#' @rdname clusterSamples-methods
-#' @aliases clusterSamples,methylBase-method
-setMethod("clusterSamples", "methylBase",
-  function(.Object, dist, method ,sd.filter, sd.threshold, 
-                   filterByQuantile, plot)
-  {
-    mat      =getData(.Object)
-    # remove rows containing NA values, they might be introduced at unite step
-    mat      =mat[ rowSums(is.na(mat))==0, ] 
-    
-    meth.mat = mat[, .Object@numCs.index]/
-      (mat[,.Object@numCs.index] + mat[,.Object@numTs.index] )                                      
-    names(meth.mat)=.Object@sample.ids
-    
-    # if Std. Dev. filter is on remove rows with low variation
-    if(sd.filter){
-      if(filterByQuantile){
-        sds=rowSds(as.matrix(meth.mat))
-        cutoff=quantile(sds,sd.threshold)
-        meth.mat=meth.mat[sds>cutoff,]
-      }else{
-        meth.mat=meth.mat[rowSds(as.matrix(meth.mat))>sd.threshold,]
-      }
-    }
-    
-    .cluster(meth.mat, dist.method=dist, hclust.method=method, 
-             plot=plot, treatment=.Object@treatment,
-             sample.ids=.Object@sample.ids,
-             context=.Object@context)
-    
-  }
+#' @rdname ClusterSamples-methods
+#' @aliases ClusterSamples,methylBase-method
+setMethod("ClusterSamples", "methylBase",
+          function(.Object, dist, method ,sd.filter, sd.threshold, 
+                   filterByQuantile, plot, lettercolors)
+          {
+            mat      =getData(.Object)
+            # remove rows containing NA values, they might be introduced at unite step
+            mat      =mat[ rowSums(is.na(mat))==0, ] 
+            
+            meth.mat = mat[, .Object@numCs.index]/
+              (mat[,.Object@numCs.index] + mat[,.Object@numTs.index] )                                      
+            names(meth.mat)=.Object@sample.ids
+            
+            # if Std. Dev. filter is on remove rows with low variation
+            if(sd.filter){
+              if(filterByQuantile){
+                sds=rowSds(as.matrix(meth.mat))
+                cutoff=quantile(sds,sd.threshold)
+                meth.mat=meth.mat[sds>cutoff,]
+              }else{
+                meth.mat=meth.mat[rowSds(as.matrix(meth.mat))>sd.threshold,]
+              }
+            }
+            .cluster(meth.mat, dist.method=dist, hclust.method=method, 
+                     plot=plot, treatment=.Object@treatment,
+                     sample.ids=.Object@sample.ids,
+                     context=.Object@context, lettercolors=lettercolors)
+            
+          }
 )
 
 #' Principal Components Analysis of Methylation data
@@ -393,54 +396,52 @@ setGeneric("PCASamples", function(.Object, screeplot=FALSE,
                                   sd.filter=TRUE,sd.threshold=0.5,
                                   filterByQuantile=TRUE,obj.return=FALSE,
                                   chunk.size=1e6) 
-          standardGeneric("PCASamples"))
+  standardGeneric("PCASamples"))
 
 #' @rdname PCASamples-methods
 #' @aliases PCASamples,methylBase-method
 setMethod("PCASamples", "methylBase",
-  function(.Object, screeplot, adj.lim,scale,center,comp,
-                             transpose,sd.filter, sd.threshold, 
-                             filterByQuantile,obj.return)
-  {
-    
-    mat      = getData(.Object)
-    # remove rows containing NA values, they might be introduced at unite step
-    mat      = mat[ rowSums(is.na(mat))==0, ] 
-    meth.mat = mat[, .Object@numCs.index]/
-      (mat[,.Object@numCs.index] + mat[,.Object@numTs.index] )                                      
-    names(meth.mat)=.Object@sample.ids
-    
-    # if Std. Dev. filter is on remove rows with low variation
-    if(sd.filter){
-      if(filterByQuantile){
-        sds=rowSds(as.matrix(meth.mat))
-        cutoff=quantile(sds,sd.threshold)
-        meth.mat=meth.mat[sds>cutoff,]
-      }else{
-        meth.mat=meth.mat[rowSds(as.matrix(meth.mat))>sd.threshold,]
-      }
-    }
-    
-    if(transpose){
-      .pcaPlotT(meth.mat,comp1=comp[1],comp2=comp[2],screeplot=screeplot, 
-                adj.lim=adj.lim, 
-                treatment=.Object@treatment,sample.ids=.Object@sample.ids,
-                context=.Object@context
-                ,scale=scale,center=center,obj.return=obj.return)
-      
-    }else{
-      .pcaPlot(meth.mat,comp1=comp[1],comp2=comp[2],screeplot=screeplot, 
-               adj.lim=adj.lim, 
-               treatment=.Object@treatment,sample.ids=.Object@sample.ids,
-               context=.Object@context,
-               scale=scale,center=center,  obj.return=obj.return)
-    }
-    
-  }      
+          function(.Object, screeplot, adj.lim,scale,center,comp,
+                   transpose,sd.filter, sd.threshold, 
+                   filterByQuantile,obj.return)
+          {
+            
+            mat      = getData(.Object)
+            # remove rows containing NA values, they might be introduced at unite step
+            mat      = mat[ rowSums(is.na(mat))==0, ] 
+            meth.mat = mat[, .Object@numCs.index]/
+              (mat[,.Object@numCs.index] + mat[,.Object@numTs.index] )                                      
+            names(meth.mat)=.Object@sample.ids
+            
+            # if Std. Dev. filter is on remove rows with low variation
+            if(sd.filter){
+              if(filterByQuantile){
+                sds=rowSds(as.matrix(meth.mat))
+                cutoff=quantile(sds,sd.threshold)
+                meth.mat=meth.mat[sds>cutoff,]
+              }else{
+                meth.mat=meth.mat[rowSds(as.matrix(meth.mat))>sd.threshold,]
+              }
+            }
+            
+            if(transpose){
+              .pcaPlotT(meth.mat,comp1=comp[1],comp2=comp[2],screeplot=screeplot, 
+                        adj.lim=adj.lim, 
+                        treatment=.Object@treatment,sample.ids=.Object@sample.ids,
+                        context=.Object@context
+                        ,scale=scale,center=center,obj.return=obj.return)
+              
+            }else{
+              .pcaPlot(meth.mat,comp1=comp[1],comp2=comp[2],screeplot=screeplot, 
+                       adj.lim=adj.lim, 
+                       treatment=.Object@treatment,sample.ids=.Object@sample.ids,
+                       context=.Object@context,
+                       scale=scale,center=center,  obj.return=obj.return)
+            }
+            
+          }      
 )
 
 #numC=grep("numCs", names(methidh))
 #numT=grep("numTs", names(methidh))
 #meth.mat=methidh[,numC]/(methidh[,numC]+methidh[,numT])
-
-
